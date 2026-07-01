@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(rm -rf /c/Users/juan0/AppData/Local/Temp/claude/g--Proyectos-Gestion-documental/d41e4c84-de8e-4c55-ae34-b4c4fd4dad94/scratchpad/scaffold)",
+      "Bash(mkdir -p /c/Users/juan0/AppData/Local/Temp/claude/g--Proyectos-Gestion-documental/d41e4c84-de8e-4c55-ae34-b4c4fd4dad94/scratchpad/scaffold)",
+      "Read(//c/Users/juan0/AppData/Local/Temp/claude/g--Proyectos-Gestion-documental/d41e4c84-de8e-4c55-ae34-b4c4fd4dad94/scratchpad/**)",
+      "Bash(npx --yes create-next-app@latest gestion-documental --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(TMPDIR=\"/c/Users/juan0/AppData/Local/Temp/claude/g--Proyectos-Gestion-documental/d41e4c84-de8e-4c55-ae34-b4c4fd4dad94/scratchpad/scaffold/gestion-documental\" *)",
+      "Bash(npm install *)",
+      "Bash(npm ls *)",
+      "Bash(npx --yes shadcn@latest init -d)",
+      "Bash(timeout 15 docker ps)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx --yes supabase@2.109.0 init)",
+      "Bash(npx next *)"
+    ]
+  }
+}
