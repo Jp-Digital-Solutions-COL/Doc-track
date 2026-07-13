@@ -73,3 +73,8 @@ for (const file of serverFiles) {
     failed = true;
   }
 }
+
+if (failed) {
+  process.exit(1);
+}
+console.log("✓ Sin fugas de service_role hacia el cliente.");

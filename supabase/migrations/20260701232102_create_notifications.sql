@@ -1,7 +1,8 @@
 -- notifications: cola de alertas enviadas (documentos por vencer, proveedor
--- rechazado, etc). Las genera el server (Vercel Cron / Server Actions) con
--- el service_role client, que ignora RLS — por eso no hay policies de
--- INSERT/UPDATE/DELETE para `authenticated`: quedan bloqueadas por defecto.
+-- rechazado, etc). Las genera el server (Cron Trigger de Cloudflare / Server
+-- Actions) con el service_role client, que ignora RLS — por eso no hay
+-- policies de INSERT/UPDATE/DELETE para `authenticated`: quedan bloqueadas
+-- por defecto.
 
 create table if not exists public.notifications (
   id              uuid primary key default gen_random_uuid(),

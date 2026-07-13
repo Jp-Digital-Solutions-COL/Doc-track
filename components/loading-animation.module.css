@@ -1,0 +1,278 @@
+.wrapper {
+  --blue: #1d6ef5;
+  --blue-mid: #2f7df8;
+  --navy: #0e2a5c;
+  --line: #a9c3dd;
+  --dur: 2.8s; /* duración de un ciclo completo */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+.loader {
+  width: min(240px, 60vw);
+}
+.loader svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* ---- Documento: se dibuja al inicio del ciclo ---- */
+.docOutline {
+  stroke-dasharray: 760;
+  animation: draw-doc var(--dur) ease-in-out infinite;
+}
+@keyframes draw-doc {
+  0% {
+    stroke-dashoffset: 760;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  28% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+.fold {
+  opacity: 0;
+  animation: fold-in var(--dur) ease infinite;
+  transform-origin: 200px 42px;
+}
+@keyframes fold-in {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  36%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- Líneas de texto: shimmer tipo skeleton ---- */
+.tline {
+  opacity: 0;
+  animation: line-shimmer var(--dur) ease-in-out infinite;
+  transform-origin: left center;
+}
+.tline:nth-of-type(1) {
+  animation-delay: 0s;
+}
+.tline:nth-of-type(2) {
+  animation-delay: 0.12s;
+}
+.tline:nth-of-type(3) {
+  animation-delay: 0.24s;
+}
+@keyframes line-shimmer {
+  0%,
+  26% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  36% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  52% {
+    opacity: 0.45;
+  }
+  64% {
+    opacity: 1;
+  }
+  76% {
+    opacity: 0.45;
+  }
+  88%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---- Puntos del recorrido: se encienden en secuencia ---- */
+.dot {
+  opacity: 0.18;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: dot-walk var(--dur) ease-in-out infinite;
+}
+.dot:nth-of-type(1) {
+  animation-delay: 0.3s;
+}
+.dot:nth-of-type(2) {
+  animation-delay: 0.42s;
+}
+.dot:nth-of-type(3) {
+  animation-delay: 0.54s;
+}
+.dot:nth-of-type(4) {
+  animation-delay: 0.66s;
+}
+.dot:nth-of-type(5) {
+  animation-delay: 0.78s;
+}
+.dot:nth-of-type(6) {
+  animation-delay: 0.9s;
+}
+@keyframes dot-walk {
+  0%,
+  28% {
+    opacity: 0.18;
+    transform: scale(0.7);
+  }
+  38% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- Pin: cae y rebota cuando los puntos llegan ---- */
+.pin {
+  opacity: 0;
+  transform-origin: 266px 160px;
+  animation: pin-drop var(--dur) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+@keyframes pin-drop {
+  0%,
+  52% {
+    opacity: 0;
+    transform: translateY(-26px);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  68% {
+    transform: translateY(-7px);
+  }
+  74% {
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Círculo del check: pop ---- */
+.checkCircle {
+  opacity: 0;
+  transform-origin: 75px 212px;
+  transform-box: view-box;
+  animation: circle-pop var(--dur) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+@keyframes circle-pop {
+  0%,
+  64% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  74% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  80%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- Check: se dibuja al final ---- */
+.check {
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: draw-check var(--dur) ease-out infinite;
+}
+@keyframes draw-check {
+  0%,
+  74% {
+    stroke-dashoffset: 70;
+  }
+  86%,
+  96% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- Texto Cargando ---- */
+.loadingText {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--navy);
+}
+.ellipsis span {
+  display: inline-block;
+  animation: blink-dot 1.4s ease-in-out infinite;
+  color: var(--blue);
+}
+.ellipsis span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ellipsis span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes blink-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrapper * {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+  }
+  .docOutline {
+    stroke-dashoffset: 0;
+  }
+  .check {
+    stroke-dashoffset: 0;
+  }
+  .fold,
+  .tline,
+  .dot,
+  .pin,
+  .checkCircle {
+    opacity: 1;
+    transform: none;
+  }
+}

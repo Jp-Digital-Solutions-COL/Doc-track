@@ -19,8 +19,11 @@ versionadas, nada hardcodeado, y las mismas políticas RLS en local y en prod.
 - Supabase (Postgres + Auth + Storage), @supabase/ssr
 - **Supabase CLI + Docker Desktop** para el entorno local
 - Tailwind + shadcn/ui
-- Resend (emails), Vercel Cron (alertas)
-- Deploy: Vercel
+- Resend (emails, plan free — 100/día, 3000/mes), Cron Trigger de Cloudflare (alertas)
+- Deploy: **Cloudflare Workers** vía `@opennextjs/cloudflare` (requiere flag
+  `nodejs_compat` + `compatibility_date` >= 2024-09-23 en `wrangler.jsonc` —
+  el código usa `node:crypto` para cifrado de campos KYC e invitaciones).
+  Dominio comprado y DNS administrado en Cloudflare.
 
 ## Entorno LOCAL (Fase A)
 Requisito: **Docker Desktop corriendo** antes de arrancar Supabase.
@@ -70,10 +73,11 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role local>   # SOLO server
 
 ## ⚠️ Regla crítica local → prod
 Las llaves que da `supabase start`/`supabase status` son **llaves de demo
-públicas e idénticas para todos**. NUNCA se copian a producción, a Vercel ni a
-un repo. En producción se usan EXCLUSIVAMENTE las llaves del proyecto Pro,
-cargadas como variables de entorno en Vercel. Verifica que ningún valor local
-quede en el código antes de migrar.
+públicas e idénticas para todos**. NUNCA se copian a producción, a Cloudflare
+ni a un repo. En producción se usan EXCLUSIVAMENTE las llaves del proyecto
+Pro, cargadas como *secrets* de Cloudflare (`wrangler secret put` o el
+dashboard) — nunca como variable de build ni en el repo. Verifica que ningún
+valor local quede en el código antes de migrar.
 
 ## Convenciones
 - Comandos para Windows CMD (no PowerShell).
@@ -97,15 +101,20 @@ Ejecutar solo cuando el producto esté probado en local:
       transferencia internacional para Ley 1581).
 - [ ] `supabase link --project-ref <ref>` y `supabase db push` (aplica todas
       las migraciones al proyecto remoto).
-- [ ] Crear buckets privados en el remoto y verificar sus políticas RLS.
-- [ ] Cargar en Vercel las variables con las llaves de PRODUCCIÓN (service_role
-      sin prefijo NEXT_PUBLIC_). Cero llaves locales.
+- [ ] Crear buckets privados en el remoto y verificar sus políticas RLS
+      (ya vienen definidos por migración — solo verificar, no crear a mano).
+- [ ] Cargar en Cloudflare las variables con las llaves de PRODUCCIÓN
+      (service_role sin prefijo NEXT_PUBLIC_) como *secrets*, nunca como
+      variable de entorno de build ni en el repo. Cero llaves locales.
 - [ ] Activar: SSL Enforcement, Network Restrictions, MFA obligatorio en la org.
 - [ ] Dejar activo el logging de conexiones (para rastro de auditoría).
 - [ ] (Opcional pero recomendado para datos críticos) habilitar PITR.
 - [ ] Firmar el DPA (contrato de encargo) desde documentos legales del dashboard.
 - [ ] Correr el test de aislamiento multi-tenant CONTRA el remoto (debe pasar).
-- [ ] Configurar y verificar el Vercel Cron de alertas.
+- [ ] Configurar el Worker satélite con Cron Trigger que llame a
+      `/api/cron/alerts` con `CRON_SECRET`, y verificar que corre.
 - [ ] Prueba de humo end-to-end: crear org, invitar proveedor, subir doc,
-      aprobar, recibir alerta.
+      aprobar, recibir alerta, y probar el cifrado/revelado de campos KYC
+      específicamente (usa node:crypto — verificar que corre bien bajo
+      nodejs_compat, no asumir que "debería funcionar").
 ```

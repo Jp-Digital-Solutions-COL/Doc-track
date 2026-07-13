@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase CLI local cache — incluye el project-ref del proyecto linkeado,
+# nunca debe versionarse (cada máquina/desarrollador linkea el suyo).
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
