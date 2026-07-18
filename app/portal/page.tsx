@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
 import { uploadDocument } from "@/lib/actions/documents";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { BrandStyle } from "@/components/brand-style";
 
 export default async function PortalPage({
   searchParams,
@@ -24,15 +26,20 @@ export default async function PortalPage({
 
   const { data: access } = await supabase
     .from("supplier_users")
-    .select("supplier_id, suppliers(legal_name, status)")
+    .select("supplier_id, suppliers(legal_name, status, organizations(name, logo_url, brand_color))")
     .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
 
   if (!access) redirect("/login");
 
-  const supplierName =
-    (access.suppliers as unknown as { legal_name: string; status: string } | null)?.legal_name ?? "tu empresa";
+  const supplierRow = access.suppliers as unknown as {
+    legal_name: string;
+    status: string;
+    organizations: { name: string; logo_url: string | null; brand_color: string | null } | null;
+  } | null;
+  const supplierName = supplierRow?.legal_name ?? "tu empresa";
+  const org = supplierRow?.organizations ?? null;
 
   const [{ data: requirements }, { data: documents }] = await Promise.all([
     supabase
@@ -49,6 +56,17 @@ export default async function PortalPage({
 
   return (
     <div className="mx-auto max-w-2xl p-8">
+      <BrandStyle brandColor={org?.brand_color ?? null} />
+      <div className="mb-6 flex items-center gap-2">
+        <Image
+          src={org?.logo_url ?? "/doc-track-logo.png"}
+          alt={org?.name ?? "Doc-Track"}
+          width={28}
+          height={28}
+          className="size-7 shrink-0"
+        />
+        <p className="text-sm font-medium text-muted-foreground">{org?.name ?? "Doc-Track"}</p>
+      </div>
       <h1 className="text-2xl font-semibold">{supplierName}</h1>
       <p className="text-muted-foreground">Sesión iniciada como {user.email}.</p>
 
