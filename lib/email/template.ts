@@ -1,6 +1,8 @@
-// Note: Production code uses "import 'server-only'" to prevent client-side imports,
-// but this is removed here as Node's test runner doesn't support it.
-// In the built Next.js app, this directive will be present via build-time transforms.
+// Sin "import 'server-only'": ese guard rompe bajo el test runner de Node
+// (node --experimental-strip-types), que este módulo debe poder correr
+// directamente. sendInvitationEmail/sendOrgAdminInvitationEmail/sendAlertEmail
+// (los únicos llamadores) ya tienen su propio "server-only", así que el
+// límite server-only sigue existiendo en la práctica.
 import { contrastingTextColor, DEFAULT_BRAND_COLOR } from "../branding/derive-palette.ts";
 
 // Los clientes de correo no soportan color-mix() ni variables CSS, así que
