@@ -419,6 +419,7 @@ export async function updateOrganizationBranding(formData: FormData) {
   const admin = createAdminClient();
 
   let logoUrl: string | undefined;
+  let previousPath: string | undefined;
 
   if (logo instanceof File && logo.size > 0) {
     if (logo.size > LOGO_MAX_BYTES) fail("El logo supera el máximo de 2MB.");
@@ -441,10 +442,7 @@ export async function updateOrganizationBranding(formData: FormData) {
     if (uploadError) fail("No se pudo subir el logo.");
 
     logoUrl = admin.storage.from("org-logos").getPublicUrl(storagePath).data.publicUrl;
-
-    // Borra el logo anterior para no acumular archivos huérfanos en el bucket.
-    const previousPath = existing?.logo_url?.split("/org-logos/")[1];
-    if (previousPath) await admin.storage.from("org-logos").remove([previousPath]);
+    previousPath = existing?.logo_url?.split("/org-logos/")[1];
   }
 
   const { error } = await supabase
@@ -452,6 +450,10 @@ export async function updateOrganizationBranding(formData: FormData) {
     .update({ brand_color: brandColor, ...(logoUrl ? { logo_url: logoUrl } : {}) })
     .eq("id", organizationId);
   if (error) fail("No se pudo guardar la marca.");
+
+  // Borra el logo anterior solo tras confirmar el UPDATE, para no dejar
+  // logo_url apuntando a un objeto borrado si el UPDATE hubiera fallado.
+  if (previousPath) await admin.storage.from("org-logos").remove([previousPath]);
 
   await logPlatformAudit(supabase, {
     actorId: user.id,
