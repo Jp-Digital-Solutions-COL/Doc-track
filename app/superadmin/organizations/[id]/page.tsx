@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import {
   getOrganizationDetail,
   updateOrganization,
+  updateOrganizationBranding,
   setOrganizationStatus,
   inviteAdminToOrganization,
   resendOrgAdminInvitation,
 } from "@/lib/actions/superadmin";
+import { LogoPicker } from "@/components/superadmin/logo-picker";
+import { DEFAULT_BRAND_COLOR } from "@/lib/branding/derive-palette";
 import { DeleteOrgConfirm } from "@/components/superadmin/delete-org-confirm";
 import { humanizeOrganizationStatus } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +99,31 @@ export default async function OrganizationDetailPage({
           </form>
 
           <DeleteOrgConfirm organizationId={organization.id} nit={organization.nit} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Marca</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={updateOrganizationBranding} className="space-y-4">
+            <input type="hidden" name="organizationId" value={organization.id} />
+            <LogoPicker currentLogoUrl={organization.logo_url} />
+            <div className="space-y-2">
+              <Label htmlFor="brandColor">Color de marca</Label>
+              <input
+                id="brandColor"
+                name="brandColor"
+                type="color"
+                defaultValue={organization.brand_color ?? DEFAULT_BRAND_COLOR}
+                className="h-9 w-16 cursor-pointer rounded-md border border-input bg-background"
+              />
+            </div>
+            <Button type="submit" variant="outline" className="w-full">
+              Guardar marca
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
