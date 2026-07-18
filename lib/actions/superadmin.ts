@@ -120,11 +120,12 @@ export async function acceptOrgAdminInvitation(formData: FormData) {
 
   const { data: invitation } = await admin
     .from("org_provision_invitations")
-    .select("id, email, organization_id, role, expires_at, used_at, organizations(name)")
+    .select("id, email, organization_id, role, expires_at, used_at, revoked_at, organizations(name)")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  const isValid = Boolean(invitation) && !invitation!.used_at && new Date(invitation!.expires_at) > new Date();
+  const isValid =
+    Boolean(invitation) && !invitation!.used_at && !invitation!.revoked_at && new Date(invitation!.expires_at) > new Date();
   if (!invitation || !isValid) {
     redirect(`/org-invite?error=${encodeURIComponent("Este enlace no es válido o ya expiró.")}`);
   }
@@ -211,11 +212,12 @@ export async function checkOrgAdminInvitationForDisplay(token: string) {
 
   const { data: invitation } = await admin
     .from("org_provision_invitations")
-    .select("email, role, expires_at, used_at, organizations(name)")
+    .select("email, role, expires_at, used_at, revoked_at, organizations(name)")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  const isValid = Boolean(invitation) && !invitation!.used_at && new Date(invitation!.expires_at) > new Date();
+  const isValid =
+    Boolean(invitation) && !invitation!.used_at && !invitation!.revoked_at && new Date(invitation!.expires_at) > new Date();
   if (!invitation || !isValid) {
     return { valid: false as const };
   }
@@ -341,7 +343,7 @@ export async function getOrganizationDetail(organizationId: string) {
       .order("created_at", { ascending: true }),
     supabase
       .from("org_provision_invitations")
-      .select("id, email, role, expires_at, used_at, created_at")
+      .select("id, email, role, expires_at, used_at, revoked_at, created_at")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false }),
   ]);
@@ -468,9 +470,10 @@ export async function inviteAdminToOrganization(formData: FormData) {
   redirect(`/superadmin/organizations/${organizationId}?invited=1`);
 }
 
-// "Enviar correo" / reenviar: invalida el token pendiente (marcándolo
-// usado) y crea uno nuevo de 72h — no se puede reenviar el mismo rawToken
-// porque solo el hash quedó guardado.
+// "Enviar correo" / reenviar: revoca el token pendiente y crea uno nuevo de
+// 72h — no se puede reenviar el mismo rawToken porque solo el hash quedó
+// guardado. Usa revoked_at (no used_at: eso significa "aceptada por el
+// invitado", no "invalidada por un reenvío" — ver migración revoked_at).
 export async function resendOrgAdminInvitation(formData: FormData) {
   const invitationId = String(formData.get("invitationId") ?? "");
   const organizationId = String(formData.get("organizationId") ?? "");
@@ -485,14 +488,14 @@ export async function resendOrgAdminInvitation(formData: FormData) {
 
   const { data: pending } = await supabase
     .from("org_provision_invitations")
-    .select("id, email, role, used_at, organization_id, organizations(name)")
+    .select("id, email, role, used_at, revoked_at, organization_id, organizations(name)")
     .eq("id", invitationId)
     .eq("organization_id", organizationId)
     .maybeSingle();
 
-  if (!pending || pending.used_at) fail("La invitación no existe o ya fue usada.");
+  if (!pending || pending.used_at || pending.revoked_at) fail("La invitación no existe o ya fue usada.");
 
-  await supabase.from("org_provision_invitations").update({ used_at: new Date().toISOString() }).eq("id", invitationId);
+  await supabase.from("org_provision_invitations").update({ revoked_at: new Date().toISOString() }).eq("id", invitationId);
 
   const organizationName = (pending.organizations as unknown as { name: string } | null)?.name ?? "tu organización";
 

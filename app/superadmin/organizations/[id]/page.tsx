@@ -177,7 +177,14 @@ export default async function OrganizationDetailPage({
             <TableBody>
               {invitations.map((inv) => {
                 const expired = new Date(inv.expires_at) <= new Date();
-                const state = inv.used_at ? "aceptada" : expired ? "expirada" : "pendiente";
+                const state = inv.used_at
+                  ? "aceptada"
+                  : inv.revoked_at
+                    ? "reemplazada"
+                    : expired
+                      ? "expirada"
+                      : "pendiente";
+                const canResend = state === "pendiente" || state === "expirada";
                 return (
                   <TableRow key={inv.id}>
                     <TableCell className="text-xs">{inv.email}</TableCell>
@@ -188,7 +195,7 @@ export default async function OrganizationDetailPage({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {state !== "aceptada" ? (
+                      {canResend ? (
                         <form action={resendOrgAdminInvitation}>
                           <input type="hidden" name="invitationId" value={inv.id} />
                           <input type="hidden" name="organizationId" value={organization.id} />
