@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar, type TopbarNotification } from "@/components/app-topbar";
 import { ToastProvider, Toaster } from "@/components/ui/toast";
 import { FlashToastBridge } from "@/components/flash-toast-bridge";
+import { BrandStyle } from "@/components/brand-style";
 
 const NOTIFICATION_LOOKAHEAD_DAYS = 15;
 
@@ -39,7 +40,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const { data: org } = membership
-    ? await supabase.from("organizations").select("name").eq("id", membership.organizationId).single()
+    ? await supabase
+        .from("organizations")
+        .select("name, logo_url, brand_color")
+        .eq("id", membership.organizationId)
+        .single()
     : { data: null };
 
   const notifications: TopbarNotification[] = [];
@@ -94,8 +99,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
+      <BrandStyle brandColor={org?.brand_color ?? null} />
       <div className="flex min-h-screen">
-        <AppSidebar orgName={org?.name ?? null} role={membership?.role ?? null} superadmin={superadmin} userEmail={user.email ?? ""} />
+        <AppSidebar
+          orgName={org?.name ?? null}
+          logoUrl={org?.logo_url ?? null}
+          role={membership?.role ?? null}
+          superadmin={superadmin}
+          userEmail={user.email ?? ""}
+        />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppTopbar userEmail={user.email ?? ""} notifications={notifications} />
           <main className="min-w-0 flex-1">{children}</main>

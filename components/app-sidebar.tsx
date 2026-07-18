@@ -52,11 +52,13 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AppSidebar({
   orgName,
+  logoUrl,
   role,
   superadmin,
   userEmail,
 }: {
   orgName: string | null;
+  logoUrl?: string | null;
   role: string | null;
   superadmin: boolean;
   userEmail: string;
@@ -70,7 +72,7 @@ export function AppSidebar({
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex items-center gap-2 px-5 py-5">
-        <Image src="/doc-track-logo.png" alt="Doc-Track" width={32} height={32} className="size-8 shrink-0" />
+        <Image src={logoUrl ?? "/doc-track-logo.png"} alt="Doc-Track" width={32} height={32} className="size-8 shrink-0" />
         <p className="truncate text-base font-semibold text-sidebar-foreground">{orgName ?? "Doc-Track"}</p>
       </div>
 
