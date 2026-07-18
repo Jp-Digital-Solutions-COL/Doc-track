@@ -80,6 +80,7 @@ export async function createOrganizationAndInviteAdmin(formData: FormData) {
     organizationName: companyName,
     email,
     role: role as (typeof ROLES)[number],
+    branding: { logoUrl: org.logo_url ?? null, brandColor: org.brand_color ?? null },
   });
 
   if (!result.ok) {
@@ -275,6 +276,7 @@ async function sendAndRecordOrgAdminInvitation(params: {
   organizationName: string;
   email: string;
   role: (typeof ROLES)[number];
+  branding: { logoUrl: string | null; brandColor: string | null };
 }) {
   const rawToken = generateInvitationToken();
   const tokenHash = hashInvitationToken(rawToken);
@@ -304,6 +306,7 @@ async function sendAndRecordOrgAdminInvitation(params: {
       inviteUrl,
       organizationName: params.organizationName,
       role: params.role,
+      branding: params.branding,
     });
   } catch (sendError) {
     console.error("sendOrgAdminInvitationEmail failed", { code: (sendError as Error).name });
@@ -511,7 +514,7 @@ export async function inviteAdminToOrganization(formData: FormData) {
 
   const { data: organization } = await supabase
     .from("organizations")
-    .select("id, name")
+    .select("id, name, logo_url, brand_color")
     .eq("id", organizationId)
     .maybeSingle();
   if (!organization) fail("Organización no encontrada.");
@@ -523,6 +526,7 @@ export async function inviteAdminToOrganization(formData: FormData) {
     organizationName: organization.name,
     email,
     role: role as (typeof ROLES)[number],
+    branding: { logoUrl: organization.logo_url ?? null, brandColor: organization.brand_color ?? null },
   });
 
   if (!result.ok) fail("No se pudo enviar la invitación.");
@@ -555,7 +559,7 @@ export async function resendOrgAdminInvitation(formData: FormData) {
 
   const { data: pending } = await supabase
     .from("org_provision_invitations")
-    .select("id, email, role, used_at, revoked_at, organization_id, organizations(name)")
+    .select("id, email, role, used_at, revoked_at, organization_id, organizations(name, logo_url, brand_color)")
     .eq("id", invitationId)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -564,7 +568,12 @@ export async function resendOrgAdminInvitation(formData: FormData) {
 
   await supabase.from("org_provision_invitations").update({ revoked_at: new Date().toISOString() }).eq("id", invitationId);
 
-  const organizationName = (pending.organizations as unknown as { name: string } | null)?.name ?? "tu organización";
+  const pendingOrg = pending.organizations as unknown as {
+    name: string;
+    logo_url: string | null;
+    brand_color: string | null;
+  } | null;
+  const organizationName = pendingOrg?.name ?? "tu organización";
 
   const result = await sendAndRecordOrgAdminInvitation({
     supabase,
@@ -573,6 +582,7 @@ export async function resendOrgAdminInvitation(formData: FormData) {
     organizationName,
     email: pending.email,
     role: pending.role as (typeof ROLES)[number],
+    branding: { logoUrl: pendingOrg?.logo_url ?? null, brandColor: pendingOrg?.brand_color ?? null },
   });
 
   if (!result.ok) fail("No se pudo reenviar el correo.");

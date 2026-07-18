@@ -65,7 +65,7 @@ export async function createInvitation(formData: FormData) {
 
   const { data: org } = await supabase
     .from("organizations")
-    .select("name")
+    .select("name, logo_url, brand_color")
     .eq("id", membership.organizationId)
     .single();
 
@@ -77,6 +77,7 @@ export async function createInvitation(formData: FormData) {
       to: email,
       inviteUrl,
       organizationName: org?.name ?? "tu organización",
+      branding: { logoUrl: org?.logo_url ?? null, brandColor: org?.brand_color ?? null },
     });
   } catch (sendError) {
     // El error real (p.ej. de la API de Resend) queda en el log del server,
