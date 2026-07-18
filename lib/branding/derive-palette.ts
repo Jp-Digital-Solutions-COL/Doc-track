@@ -43,6 +43,8 @@ export type BrandCssVars = {
   "--sidebar-primary-foreground": string;
   "--accent": string;
   "--accent-foreground": string;
+  "--sidebar-accent": string;
+  "--sidebar-accent-foreground": string;
 };
 
 export function derivePalette(hex: string): BrandCssVars {
@@ -55,5 +57,7 @@ export function derivePalette(hex: string): BrandCssVars {
     "--sidebar-primary-foreground": foreground,
     "--accent": `color-mix(in srgb, ${hex} 15%, white)`,
     "--accent-foreground": hex,
+    "--sidebar-accent": `color-mix(in srgb, ${hex} 15%, white)`,
+    "--sidebar-accent-foreground": hex,
   };
 }

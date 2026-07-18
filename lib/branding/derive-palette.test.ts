@@ -42,3 +42,9 @@ test("derivePalette usa el mismo hex para --primary y --sidebar-primary, y deriv
   assert.match(palette["--accent"], /color-mix/);
   assert.match(palette["--ring"], /color-mix/);
 });
+
+test("derivePalette expone --sidebar-accent/--sidebar-accent-foreground con el mismo valor que --accent/--accent-foreground", () => {
+  const palette = derivePalette("#006adc");
+  assert.equal(palette["--sidebar-accent"], palette["--accent"]);
+  assert.equal(palette["--sidebar-accent-foreground"], palette["--accent-foreground"]);
+});
