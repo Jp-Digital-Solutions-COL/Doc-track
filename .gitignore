@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare / opennext
+.open-next/
+.wrangler/
+.dev.vars
+
 # supabase CLI local cache — incluye el project-ref del proyecto linkeado,
 # nunca debe versionarse (cada máquina/desarrollador linkea el suyo).
 supabase/.temp/

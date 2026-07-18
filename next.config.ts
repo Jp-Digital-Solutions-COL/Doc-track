@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
   // Quita el header X-Powered-By: Next.js — no aporta nada al cliente y es
   // fingerprinting gratis para quien esté reconociendo el stack.
   poweredByHeader: false,
+  // ponytail: el optimizador de imágenes de Next necesita un pipeline de
+  // procesamiento que no está trivialmente disponible en Workers. Las únicas
+  // imágenes de la app son logos PNG estáticos chicos — no vale la pena
+  // Cloudflare Images para eso. Revisar si se agregan fotos/uploads de
+  // usuario servidas por next/image.
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     serverActions: {
       // Default de Next es 1MB; el bucket admite hasta 15MB (ver migración
@@ -38,3 +46,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();
