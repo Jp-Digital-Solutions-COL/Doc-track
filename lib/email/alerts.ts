@@ -1,5 +1,6 @@
 import "server-only";
 import { sendEmail } from "@/lib/email/send";
+import { renderEmailHtml } from "@/lib/email/template";
 
 export type AlertKind = "expiring" | "expired" | "missing";
 export type Audience = "supplier" | "org";
@@ -41,7 +42,13 @@ function buildAlertEmail(kind: AlertKind, audience: Audience, p: AlertParams): {
   };
 }
 
-export async function sendAlertEmail(to: string, kind: AlertKind, audience: Audience, params: AlertParams) {
+export async function sendAlertEmail(
+  to: string,
+  kind: AlertKind,
+  audience: Audience,
+  params: AlertParams,
+  branding: { logoUrl: string | null; brandColor: string | null }
+) {
   const { subject, html } = buildAlertEmail(kind, audience, params);
-  await sendEmail({ to, subject, html });
+  await sendEmail({ to, subject, html: renderEmailHtml({ logoUrl: branding.logoUrl, bodyHtml: html }) });
 }

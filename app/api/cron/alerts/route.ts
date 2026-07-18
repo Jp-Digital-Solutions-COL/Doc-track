@@ -61,6 +61,28 @@ async function notifyOnce(
   }
 }
 
+type OrgBranding = { logoUrl: string | null; brandColor: string | null };
+
+// El job puede mandar muchos correos por organización en una sola corrida
+// (uno por documento/proveedor) — este cache evita repetir la consulta de
+// branding por cada correo.
+const brandingCache = new Map<string, OrgBranding>();
+
+async function getOrgBranding(admin: SupabaseClient, organizationId: string): Promise<OrgBranding> {
+  const cached = brandingCache.get(organizationId);
+  if (cached) return cached;
+
+  const { data } = await admin
+    .from("organizations")
+    .select("logo_url, brand_color")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  const branding: OrgBranding = { logoUrl: data?.logo_url ?? null, brandColor: data?.brand_color ?? null };
+  brandingCache.set(organizationId, branding);
+  return branding;
+}
+
 async function notifyBoth(
   admin: SupabaseClient,
   params: {
@@ -75,6 +97,7 @@ async function notifyBoth(
   }
 ) {
   const results: ("sent" | "duplicate" | "insert_failed" | "send_failed")[] = [];
+  const branding = await getOrgBranding(admin, params.organizationId);
 
   if (params.supplierEmail) {
     results.push(
@@ -85,7 +108,7 @@ async function notifyBoth(
         supplierId: params.supplierId,
         documentTypeId: params.documentTypeId,
         today: params.today,
-        send: () => sendAlertEmail(params.supplierEmail!, params.kind, "supplier", params.alertParams),
+        send: () => sendAlertEmail(params.supplierEmail!, params.kind, "supplier", params.alertParams, branding),
       })
     );
   }
@@ -100,7 +123,7 @@ async function notifyBoth(
         supplierId: params.supplierId,
         documentTypeId: params.documentTypeId,
         today: params.today,
-        send: () => sendAlertEmail(email, params.kind, "org" as Audience, params.alertParams),
+        send: () => sendAlertEmail(email, params.kind, "org" as Audience, params.alertParams, branding),
       })
     );
   }
