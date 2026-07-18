@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperadmin } from "@/lib/auth/superadmin";
@@ -10,6 +11,8 @@ import { sendOrgAdminInvitationEmail } from "@/lib/email/resend";
 import { logAudit } from "@/lib/actions/audit";
 import { TEXT_LIMITS, exceedsLimit } from "@/lib/security/text-limits";
 import { CURRENT_POLICY_VERSION, CONSENT_PURPOSE } from "@/lib/legal/policy";
+import { detectFileType } from "@/lib/documents/file-type";
+import { isValidHexColor } from "@/lib/branding/derive-palette";
 
 const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
 const ROLES = ["owner", "admin"] as const;
@@ -329,7 +332,7 @@ export async function getOrganizationDetail(organizationId: string) {
 
   const { data: organization } = await supabase
     .from("organizations")
-    .select("id, name, nit, plan, status, created_at")
+    .select("id, name, nit, plan, status, created_at, logo_url, brand_color")
     .eq("id", organizationId)
     .maybeSingle();
 
@@ -391,6 +394,68 @@ export async function updateOrganization(formData: FormData) {
   await logPlatformAudit(supabase, {
     actorId: user.id,
     action: "organization.update",
+    entityType: "organization",
+    entityId: organizationId,
+  });
+
+  redirect(`/superadmin/organizations/${organizationId}?saved=1`);
+}
+
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+export async function updateOrganizationBranding(formData: FormData) {
+  const organizationId = String(formData.get("organizationId") ?? "");
+  const brandColor = String(formData.get("brandColor") ?? "");
+  const logo = formData.get("logo");
+
+  function fail(message: string): never {
+    redirect(`/superadmin/organizations/${organizationId}?error=${encodeURIComponent(message)}`);
+  }
+
+  if (!organizationId) redirect("/superadmin");
+  if (!isValidHexColor(brandColor)) fail("Color de marca inválido.");
+
+  const { supabase, user } = await requireSuperadmin();
+  const admin = createAdminClient();
+
+  let logoUrl: string | undefined;
+
+  if (logo instanceof File && logo.size > 0) {
+    if (logo.size > LOGO_MAX_BYTES) fail("El logo supera el máximo de 2MB.");
+
+    const bytes = new Uint8Array(await logo.arrayBuffer());
+    const detected = detectFileType(bytes);
+    if (!detected || detected.mime === "application/pdf") fail("El logo debe ser PNG o JPG.");
+
+    const { data: existing } = await supabase
+      .from("organizations")
+      .select("logo_url")
+      .eq("id", organizationId)
+      .maybeSingle();
+
+    const storagePath = `${organizationId}/${randomUUID()}.${detected.ext}`;
+
+    const { error: uploadError } = await admin.storage.from("org-logos").upload(storagePath, bytes, {
+      contentType: detected.mime,
+    });
+    if (uploadError) fail("No se pudo subir el logo.");
+
+    logoUrl = admin.storage.from("org-logos").getPublicUrl(storagePath).data.publicUrl;
+
+    // Borra el logo anterior para no acumular archivos huérfanos en el bucket.
+    const previousPath = existing?.logo_url?.split("/org-logos/")[1];
+    if (previousPath) await admin.storage.from("org-logos").remove([previousPath]);
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ brand_color: brandColor, ...(logoUrl ? { logo_url: logoUrl } : {}) })
+    .eq("id", organizationId);
+  if (error) fail("No se pudo guardar la marca.");
+
+  await logPlatformAudit(supabase, {
+    actorId: user.id,
+    action: "organization.update_branding",
     entityType: "organization",
     entityId: organizationId,
   });
