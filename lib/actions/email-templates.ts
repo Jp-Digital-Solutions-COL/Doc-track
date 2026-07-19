@@ -72,25 +72,31 @@ export async function saveEmailTemplate(formData: FormData) {
     fail(result.error.issues[0]?.message ?? "Plantilla inválida.");
   }
 
-  const { error } = await supabase.from("organization_email_templates").upsert(
-    {
-      organization_id: organizationId,
-      email_type: emailType,
-      subject: result.data.subject,
-      blocks: result.data.blocks,
-      updated_by: user.id,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "organization_id,email_type" }
-  );
+  const { data: saved, error } = await supabase
+    .from("organization_email_templates")
+    .upsert(
+      {
+        organization_id: organizationId,
+        email_type: emailType,
+        subject: result.data.subject,
+        blocks: result.data.blocks,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,email_type" }
+    )
+    .select("id")
+    .single();
   if (error) fail("No se pudo guardar la plantilla.");
 
+  // entity_id es uuid en audit_logs — el id real de la fila, no el slug
+  // de emailType (que no es un uuid y haría fallar el insert).
   await logAudit(supabase, {
     organizationId,
     actorId: user.id,
     action: "email_template.update",
     entityType: "organization_email_templates",
-    entityId: emailType,
+    entityId: saved.id,
   });
 
   redirect(`/app/settings/emails/${emailType}?saved=1`);
@@ -105,7 +111,7 @@ export async function resetEmailTemplate(formData: FormData) {
 
   const { data: existing } = await supabase
     .from("organization_email_templates")
-    .select("blocks")
+    .select("id, blocks")
     .eq("organization_id", organizationId)
     .eq("email_type", emailType)
     .maybeSingle();
@@ -131,12 +137,15 @@ export async function resetEmailTemplate(formData: FormData) {
     }
   }
 
+  // entity_id es uuid en audit_logs — el id real de la fila borrada, no el
+  // slug de emailType. Si no había fila (nada que restaurar), no hay id que
+  // registrar; logAudit trata entityId ausente como null.
   await logAudit(supabase, {
     organizationId,
     actorId: user.id,
     action: "email_template.reset",
     entityType: "organization_email_templates",
-    entityId: emailType,
+    entityId: existing?.id,
   });
 
   redirect(`/app/settings/emails/${emailType}?saved=1`);
