@@ -32,7 +32,20 @@ export function buildBlocksSchema(emailType: EmailType, organizationId: string) 
   const imageBlock = z.object({
     id: z.string(),
     type: z.literal("image"),
-    url: z.string().refine((u) => u.startsWith(expectedAssetPrefix), "La imagen debe pertenecer a esta organización."),
+    url: z.string().refine((u) => {
+      // Parse-then-compare on the normalized pathname, not a raw substring
+      // match on the unparsed string: a raw .startsWith() is bypassable via
+      // "../" path traversal (the string starts with our prefix but a URL
+      // consumer resolves it into a different org's folder).
+      let parsed: URL;
+      try {
+        parsed = new URL(u);
+      } catch {
+        return false;
+      }
+      const expected = new URL(expectedAssetPrefix);
+      return parsed.origin === expected.origin && parsed.pathname.startsWith(expected.pathname);
+    }, "La imagen debe pertenecer a esta organización."),
     alt: z.string().max(BLOCK_LIMITS.maxAltLength),
   });
 

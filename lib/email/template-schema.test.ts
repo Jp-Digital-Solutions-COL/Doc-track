@@ -6,6 +6,7 @@ import { buildBlocksSchema } from "./template-schema.ts";
 const ORG_ID = "11111111-1111-1111-1111-111111111111";
 const ASSET_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321"}/storage/v1/object/public/email-assets/${ORG_ID}/img.png`;
 const OTHER_ORG_ASSET_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321"}/storage/v1/object/public/email-assets/22222222-2222-2222-2222-222222222222/img.png`;
+const TRAVERSAL_ASSET_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321"}/storage/v1/object/public/email-assets/${ORG_ID}/../22222222-2222-2222-2222-222222222222/secret.png`;
 
 test("acepta una plantilla válida con variables permitidas", () => {
   const schema = buildBlocksSchema("invite_supplier", ORG_ID);
@@ -42,6 +43,15 @@ test("rechaza una imagen que no pertenece al bucket/prefijo de la organización"
   const result = schema.safeParse({
     subject: "Hola",
     blocks: [{ id: "1", type: "image", url: OTHER_ORG_ASSET_URL, alt: "x" }],
+  });
+  assert.equal(result.success, false);
+});
+
+test("rechaza una imagen con path traversal (..) hacia el prefijo de otra organización", () => {
+  const schema = buildBlocksSchema("invite_supplier", ORG_ID);
+  const result = schema.safeParse({
+    subject: "Hola",
+    blocks: [{ id: "1", type: "image", url: TRAVERSAL_ASSET_URL, alt: "x" }],
   });
   assert.equal(result.success, false);
 });
