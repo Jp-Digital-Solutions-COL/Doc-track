@@ -7,6 +7,7 @@ import { getCurrentMembership } from "@/lib/auth/session";
 import { generateInvitationToken, hashInvitationToken } from "@/lib/auth/invitation-token";
 import { findUserIdByEmail } from "@/lib/auth/find-user-by-email";
 import { sendInvitationEmail } from "@/lib/email/resend";
+import { getOrgEmailTemplate } from "@/lib/email/get-template-row";
 import { logAudit } from "@/lib/actions/audit";
 import { TEXT_LIMITS, exceedsLimit } from "@/lib/security/text-limits";
 import { CURRENT_POLICY_VERSION, CONSENT_PURPOSE } from "@/lib/legal/policy";
@@ -69,6 +70,8 @@ export async function createInvitation(formData: FormData) {
     .eq("id", membership.organizationId)
     .single();
 
+  const templateOverride = await getOrgEmailTemplate(supabase, membership.organizationId, "invite_supplier");
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const inviteUrl = `${appUrl}/invite?token=${rawToken}`;
 
@@ -78,6 +81,7 @@ export async function createInvitation(formData: FormData) {
       inviteUrl,
       organizationName: org?.name ?? "tu organización",
       branding: { logoUrl: org?.logo_url ?? null, brandColor: org?.brand_color ?? null },
+      templateOverride,
     });
   } catch (sendError) {
     // El error real (p.ej. de la API de Resend) queda en el log del server,
