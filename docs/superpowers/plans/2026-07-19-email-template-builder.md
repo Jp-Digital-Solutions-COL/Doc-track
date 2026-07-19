@@ -824,25 +824,32 @@ export async function saveEmailTemplate(formData: FormData) {
     fail(result.error.issues[0]?.message ?? "Plantilla inválida.");
   }
 
-  const { error } = await supabase.from("organization_email_templates").upsert(
-    {
-      organization_id: organizationId,
-      email_type: emailType,
-      subject: result.data.subject,
-      blocks: result.data.blocks,
-      updated_by: user.id,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "organization_id,email_type" }
-  );
-  if (error) fail("No se pudo guardar la plantilla.");
+  const { data: saved, error } = await supabase
+    .from("organization_email_templates")
+    .upsert(
+      {
+        organization_id: organizationId,
+        email_type: emailType,
+        subject: result.data.subject,
+        blocks: result.data.blocks,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,email_type" }
+    )
+    .select("id")
+    .single();
+  if (error || !saved) fail("No se pudo guardar la plantilla.");
 
+  // entityId debe ser el uuid real de la fila — audit_logs.entity_id es
+  // `uuid`, así que pasar el slug emailType (texto plano) hace que el
+  // insert falle en silencio (logAudit solo loguea el error, nunca lanza).
   await logAudit(supabase, {
     organizationId,
     actorId: user.id,
     action: "email_template.update",
     entityType: "organization_email_templates",
-    entityId: emailType,
+    entityId: saved.id,
   });
 
   redirect(`/app/settings/emails/${emailType}?saved=1`);
@@ -857,7 +864,7 @@ export async function resetEmailTemplate(formData: FormData) {
 
   const { data: existing } = await supabase
     .from("organization_email_templates")
-    .select("blocks")
+    .select("id, blocks")
     .eq("organization_id", organizationId)
     .eq("email_type", emailType)
     .maybeSingle();
@@ -888,7 +895,7 @@ export async function resetEmailTemplate(formData: FormData) {
     actorId: user.id,
     action: "email_template.reset",
     entityType: "organization_email_templates",
-    entityId: emailType,
+    entityId: existing?.id,
   });
 
   redirect(`/app/settings/emails/${emailType}?saved=1`);
