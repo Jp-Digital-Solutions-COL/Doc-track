@@ -13,6 +13,11 @@
 // audiencias (ver "Nota de diseño" en el plan).
 import type { EmailBlock, EmailType } from "./blocks.ts";
 
+// Omit<Union, K> no distribuye sobre uniones discriminadas (colapsa a las
+// keys compartidas por todos los miembros) — este wrapper fuerza la
+// distribución para que cada variante conserve sus campos propios.
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
 const SUBJECTS: Record<EmailType, string> = {
   invite_supplier: "Invitación de {{organizationName}} — Gestión Documental",
   invite_org_admin: "Invitación como {{role}} de {{organizationName}} — Gestión Documental",
@@ -21,7 +26,7 @@ const SUBJECTS: Record<EmailType, string> = {
   alert_missing: "Documento pendiente: {{documentTypeName}}",
 };
 
-const BLOCKS: Record<EmailType, Omit<EmailBlock, "id">[]> = {
+const BLOCKS: Record<EmailType, DistributiveOmit<EmailBlock, "id">[]> = {
   invite_supplier: [
     { type: "text", text: "{{organizationName}} te invitó a cargar tus documentos como proveedor." },
     { type: "button", label: "Aceptar invitación", hrefVar: "inviteUrl" },
