@@ -48,3 +48,9 @@ test("derivePalette expone --sidebar-accent/--sidebar-accent-foreground con el m
   assert.equal(palette["--sidebar-accent"], palette["--accent"]);
   assert.equal(palette["--sidebar-accent-foreground"], palette["--accent-foreground"]);
 });
+
+test("derivePalette oscurece --accent-foreground con color-mix en vez de usar el hex crudo, incluso para colores claros", () => {
+  const palette = derivePalette("#ffe600");
+  assert.notEqual(palette["--accent-foreground"], "#ffe600");
+  assert.equal(palette["--accent-foreground"], "color-mix(in srgb, #ffe600 60%, black)");
+});

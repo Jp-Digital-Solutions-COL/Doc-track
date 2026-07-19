@@ -56,8 +56,8 @@ export function derivePalette(hex: string): BrandCssVars {
     "--sidebar-primary": hex,
     "--sidebar-primary-foreground": foreground,
     "--accent": `color-mix(in srgb, ${hex} 15%, white)`,
-    "--accent-foreground": hex,
+    "--accent-foreground": `color-mix(in srgb, ${hex} 60%, black)`,
     "--sidebar-accent": `color-mix(in srgb, ${hex} 15%, white)`,
-    "--sidebar-accent-foreground": hex,
+    "--sidebar-accent-foreground": `color-mix(in srgb, ${hex} 60%, black)`,
   };
 }
