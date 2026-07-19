@@ -41,6 +41,13 @@ test("renderBlocks omite un bloque de botón cuyo hrefVar no resuelve — nunca 
   assert.doesNotMatch(html, /href=""/);
 });
 
+test("renderBlocks escapa HTML en el label del botón", () => {
+  const blocks: EmailBlock[] = [{ id: "1", type: "button", label: "<b>X</b>", hrefVar: "inviteUrl" }];
+  const html = renderBlocks(blocks, { inviteUrl: "https://example.com/x" }, null);
+  assert.match(html, /&lt;b&gt;/);
+  assert.doesNotMatch(html, /<b>/);
+});
+
 test("renderBlocks renderiza un separador", () => {
   const blocks: EmailBlock[] = [{ id: "1", type: "divider" }];
   const html = renderBlocks(blocks, {}, null);

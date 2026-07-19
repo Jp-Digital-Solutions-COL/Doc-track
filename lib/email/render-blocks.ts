@@ -47,7 +47,7 @@ export function renderBlocks(
         const href = variables[block.hrefVar];
         // Nunca se emite <a href="">: un botón sin destino resuelto se omite.
         if (!href) return "";
-        return `<p>${brandButtonHtml({ href, label: block.label, brandColor })}</p>`;
+        return `<p>${brandButtonHtml({ href, label: escapeHtml(block.label), brandColor })}</p>`;
       }
       return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />`;
     })
