@@ -31,6 +31,10 @@ export default async function SuperadminPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-8">
+      <Link href="/app" className="text-sm text-muted-foreground hover:underline">
+        ← Volver al dashboard
+      </Link>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Organizaciones</h1>
         <Link href="/superadmin/organizations/new">
