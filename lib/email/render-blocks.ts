@@ -41,7 +41,7 @@ export function renderBlocks(
         return `<p>${escapeHtml(substituted).replace(/\n/g, "<br />")}</p>`;
       }
       if (block.type === "image") {
-        return `<img src="${block.url}" alt="${escapeHtml(block.alt)}" style="display:block;max-width:100%;margin:12px 0;" />`;
+        return `<img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt)}" style="display:block;max-width:100%;margin:12px 0;" />`;
       }
       if (block.type === "button") {
         const href = variables[block.hrefVar];

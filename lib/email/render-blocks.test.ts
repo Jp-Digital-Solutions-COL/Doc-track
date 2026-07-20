@@ -26,6 +26,40 @@ test("renderBlocks renderiza un bloque de imagen con url y alt", () => {
   assert.match(html, /<img src="https:\/\/example\.com\/a\.png" alt="Logo"/);
 });
 
+test("renderBlocks escapa HTML en la url de imagen — evita romper el atributo src", () => {
+  const blocks: EmailBlock[] = [
+    {
+      id: "1",
+      type: "image",
+      url: 'https://example.com/x.png"><script>alert(1)</script>',
+      alt: "Logo",
+    },
+  ];
+  const html = renderBlocks(blocks, {}, null);
+  assert.match(html, /&quot;&gt;&lt;script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.doesNotMatch(html, /">/);
+});
+
+test("renderBlocks renderiza una plantilla personalizada completa (texto + imagen + botón + separador)", () => {
+  const blocks: EmailBlock[] = [
+    { id: "1", type: "text", text: "Hola {{organizationName}}" },
+    { id: "2", type: "image", url: "https://example.com/logo.png", alt: "Logo" },
+    { id: "3", type: "divider" },
+    { id: "4", type: "button", label: "Ir al portal", hrefVar: "portalUrl" },
+  ];
+  const html = renderBlocks(
+    blocks,
+    { organizationName: "Acme", portalUrl: "https://example.com/portal" },
+    "#00ff00"
+  );
+  assert.match(html, /Hola Acme/);
+  assert.match(html, /<img src="https:\/\/example\.com\/logo\.png" alt="Logo"/);
+  assert.match(html, /<hr/);
+  assert.match(html, /href="https:\/\/example\.com\/portal"/);
+  assert.match(html, />Ir al portal<\/a>/);
+});
+
 test("renderBlocks renderiza un bloque de botón con el href resuelto", () => {
   const blocks: EmailBlock[] = [{ id: "1", type: "button", label: "Aceptar", hrefVar: "inviteUrl" }];
   const html = renderBlocks(blocks, { inviteUrl: "https://example.com/x" }, "#ff0000");
