@@ -134,6 +134,14 @@ async function setup(): Promise<Ctx> {
   });
   if (documentBErr) throw documentBErr;
 
+  const { error: templateAErr } = await admin.from("organization_email_templates").insert({
+    organization_id: orgA.id,
+    email_type: "invite_supplier",
+    subject: "Asunto de prueba Org A",
+    blocks: [{ id: "1", type: "divider" }],
+  });
+  if (templateAErr) throw templateAErr;
+
   console.log("[setup] listo.\n");
 
   return { orgA, orgB, userA: { id: userA.id, email: emailA } };
@@ -210,6 +218,38 @@ async function main() {
     // Doble verificación con el cliente admin: ninguna fila quedó insertada.
     const { data: leaked } = await admin.from("suppliers").select("id").eq("nit", `HACK-${run}`);
     check("Ninguna fila quedó insertada en la BD tras el intento bloqueado", (leaked?.length ?? 0) === 0);
+
+    // --- 5. organization_email_templates: lectura/escritura cross-tenant ---
+    const { data: templatesFromA } = await asUserA
+      .from("organization_email_templates")
+      .select("id")
+      .eq("organization_id", ctx.orgA.id);
+    check("Org A SÍ ve su propia plantilla de correo (control positivo)", (templatesFromA?.length ?? 0) === 1);
+
+    const { data: templatesFromB, error: templatesReadErr } = await asUserA
+      .from("organization_email_templates")
+      .select("id")
+      .eq("organization_id", ctx.orgB.id);
+    check(
+      "Org A NO ve plantillas de correo de Org B",
+      !templatesReadErr && (templatesFromB?.length ?? -1) === 0,
+      templatesReadErr ? templatesReadErr.message : `filas devueltas: ${templatesFromB?.length}`
+    );
+
+    const { data: templateInsertData, error: templateInsertErr } = await asUserA
+      .from("organization_email_templates")
+      .insert({
+        organization_id: ctx.orgB.id,
+        email_type: "invite_org_admin",
+        subject: "intruso",
+        blocks: [{ id: "1", type: "divider" }],
+      })
+      .select();
+    check(
+      "INSERT de plantilla de Org A hacia Org B es rechazado por RLS",
+      !!templateInsertErr && (templateInsertData?.length ?? 0) === 0,
+      templateInsertErr ? templateInsertErr.message : "el insert NO fue rechazado — esto es una fuga"
+    );
   } finally {
     await cleanup(ctx);
   }
