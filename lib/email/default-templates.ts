@@ -23,7 +23,7 @@ const SUBJECTS: Record<EmailType, string> = {
   invite_org_admin: "Invitación como {{role}} de {{organizationName}} — Gestión Documental",
   alert_expiring: "{{documentoDestinatario}} vence en {{daysUntil}} días",
   alert_expired: "{{documentoDestinatario}} venció",
-  alert_missing: "Documento pendiente: {{documentTypeName}}",
+  alert_missing: "Documento pendiente: {{documentoDestinatario}}",
 };
 
 const BLOCKS: Record<EmailType, DistributiveOmit<EmailBlock, "id">[]> = {

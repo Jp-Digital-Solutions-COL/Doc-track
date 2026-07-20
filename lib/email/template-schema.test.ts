@@ -56,6 +56,18 @@ test("rechaza una imagen con path traversal (..) hacia el prefijo de otra organi
   assert.equal(result.success, false);
 });
 
+test("rechaza una imagen sin subir con un mensaje distinto al de propiedad", () => {
+  const schema = buildBlocksSchema("invite_supplier", ORG_ID);
+  const result = schema.safeParse({
+    subject: "Hola",
+    blocks: [{ id: "1", type: "image", url: "", alt: "x" }],
+  });
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(result.error.issues[0]?.message, "Selecciona una imagen antes de guardar.");
+  }
+});
+
 test("acepta una imagen que sí pertenece al prefijo de la organización", () => {
   const schema = buildBlocksSchema("invite_supplier", ORG_ID);
   const result = schema.safeParse({
