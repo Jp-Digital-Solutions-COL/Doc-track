@@ -10,6 +10,7 @@ import {
 import { recalculateSupplierStatus } from "@/lib/documents/recalculate-supplier-status";
 import { writeComplianceSnapshots } from "@/lib/documents/compliance-snapshot";
 import { sendAlertEmail, type AlertKind, type Audience } from "@/lib/email/alerts";
+import { getOrgEmailTemplate } from "@/lib/email/get-template-row";
 import { logAudit } from "@/lib/actions/audit";
 
 function isoDate(date: Date) {
@@ -65,8 +66,9 @@ type OrgBranding = { logoUrl: string | null; brandColor: string | null };
 
 // El job puede mandar muchos correos por organización en una sola corrida
 // (uno por documento/proveedor) — este cache evita repetir la consulta de
-// branding por cada correo.
+// branding/plantilla por cada correo.
 const brandingCache = new Map<string, OrgBranding>();
+const templateCache = new Map<string, Parameters<typeof sendAlertEmail>[5]>();
 
 async function getOrgBranding(admin: SupabaseClient, organizationId: string): Promise<OrgBranding> {
   const cached = brandingCache.get(organizationId);
@@ -81,6 +83,15 @@ async function getOrgBranding(admin: SupabaseClient, organizationId: string): Pr
   const branding: OrgBranding = { logoUrl: data?.logo_url ?? null, brandColor: data?.brand_color ?? null };
   brandingCache.set(organizationId, branding);
   return branding;
+}
+
+async function getCachedOrgTemplate(admin: SupabaseClient, organizationId: string, kind: AlertKind) {
+  const key = `${organizationId}:${kind}`;
+  if (templateCache.has(key)) return templateCache.get(key)!;
+
+  const template = await getOrgEmailTemplate(admin, organizationId, `alert_${kind}` as const);
+  templateCache.set(key, template);
+  return template;
 }
 
 async function notifyBoth(
@@ -98,6 +109,7 @@ async function notifyBoth(
 ) {
   const results: ("sent" | "duplicate" | "insert_failed" | "send_failed")[] = [];
   const branding = await getOrgBranding(admin, params.organizationId);
+  const templateOverride = await getCachedOrgTemplate(admin, params.organizationId, params.kind);
 
   if (params.supplierEmail) {
     results.push(
@@ -108,7 +120,8 @@ async function notifyBoth(
         supplierId: params.supplierId,
         documentTypeId: params.documentTypeId,
         today: params.today,
-        send: () => sendAlertEmail(params.supplierEmail!, params.kind, "supplier", params.alertParams, branding),
+        send: () =>
+          sendAlertEmail(params.supplierEmail!, params.kind, "supplier", params.alertParams, branding, templateOverride),
       })
     );
   }
@@ -123,7 +136,7 @@ async function notifyBoth(
         supplierId: params.supplierId,
         documentTypeId: params.documentTypeId,
         today: params.today,
-        send: () => sendAlertEmail(email, params.kind, "org" as Audience, params.alertParams, branding),
+        send: () => sendAlertEmail(email, params.kind, "org" as Audience, params.alertParams, branding, templateOverride),
       })
     );
   }

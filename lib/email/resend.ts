@@ -1,25 +1,31 @@
 import "server-only";
 import { sendEmail } from "@/lib/email/send";
-import { renderEmailHtml, brandButtonHtml } from "@/lib/email/template";
+import { renderEmailHtml } from "@/lib/email/template";
+import { renderBlocks, substituteVariables } from "@/lib/email/render-blocks";
+import { resolveEmailContent } from "@/lib/email/default-templates";
+import type { EmailBlock } from "@/lib/email/blocks";
 
 type Branding = { logoUrl: string | null; brandColor: string | null };
+type TemplateOverride = { subject: string; blocks: EmailBlock[] } | null;
 
 export async function sendInvitationEmail(params: {
   to: string;
   inviteUrl: string;
   organizationName: string;
   branding: Branding;
+  templateOverride: TemplateOverride;
 }) {
+  const { subject, blocks } = resolveEmailContent("invite_supplier", params.templateOverride);
+  const variables = { organizationName: params.organizationName, inviteUrl: params.inviteUrl };
+
   await sendEmail({
     to: params.to,
-    subject: `Invitación de ${params.organizationName} — Gestión Documental`,
+    // .replace(...) evita que una variable con salto de línea inyecte un
+    // header de correo adicional en el subject.
+    subject: substituteVariables(subject, variables).replace(/[\r\n]/g, " "),
     html: renderEmailHtml({
       logoUrl: params.branding.logoUrl,
-      bodyHtml: `
-        <p>${params.organizationName} te invitó a cargar tus documentos como proveedor.</p>
-        <p>${brandButtonHtml({ href: params.inviteUrl, label: "Aceptar invitación", brandColor: params.branding.brandColor })}</p>
-        <p>Este enlace expira en 72 horas y solo puede usarse una vez.</p>
-      `,
+      bodyHtml: renderBlocks(blocks, variables, params.branding.brandColor),
     }),
   });
 }
@@ -30,17 +36,17 @@ export async function sendOrgAdminInvitationEmail(params: {
   organizationName: string;
   role: "owner" | "admin";
   branding: Branding;
+  templateOverride: TemplateOverride;
 }) {
+  const { subject, blocks } = resolveEmailContent("invite_org_admin", params.templateOverride);
+  const variables = { organizationName: params.organizationName, role: params.role, inviteUrl: params.inviteUrl };
+
   await sendEmail({
     to: params.to,
-    subject: `Invitación como ${params.role} de ${params.organizationName} — Gestión Documental`,
+    subject: substituteVariables(subject, variables).replace(/[\r\n]/g, " "),
     html: renderEmailHtml({
       logoUrl: params.branding.logoUrl,
-      bodyHtml: `
-        <p>Fuiste invitado a administrar <strong>${params.organizationName}</strong> como ${params.role} en Gestión Documental.</p>
-        <p>${brandButtonHtml({ href: params.inviteUrl, label: "Aceptar invitación", brandColor: params.branding.brandColor })}</p>
-        <p>Este enlace expira en 72 horas y solo puede usarse una vez.</p>
-      `,
+      bodyHtml: renderBlocks(blocks, variables, params.branding.brandColor),
     }),
   });
 }

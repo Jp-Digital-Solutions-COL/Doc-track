@@ -8,6 +8,7 @@ import { isSuperadmin } from "@/lib/auth/superadmin";
 import { generateInvitationToken, hashInvitationToken } from "@/lib/auth/invitation-token";
 import { findUserIdByEmail } from "@/lib/auth/find-user-by-email";
 import { sendOrgAdminInvitationEmail } from "@/lib/email/resend";
+import { getOrgEmailTemplate } from "@/lib/email/get-template-row";
 import { logAudit } from "@/lib/actions/audit";
 import { TEXT_LIMITS, exceedsLimit } from "@/lib/security/text-limits";
 import { CURRENT_POLICY_VERSION, CONSENT_PURPOSE } from "@/lib/legal/policy";
@@ -73,6 +74,8 @@ export async function createOrganizationAndInviteAdmin(formData: FormData) {
 
   // A partir de acá ya corre con el cliente normal (RLS: organizations_*_superadmin) —
   // solo el INSERT de arriba necesitaba el cliente admin.
+  const templateOverride = await getOrgEmailTemplate(admin, org.id, "invite_org_admin");
+
   const result = await sendAndRecordOrgAdminInvitation({
     supabase,
     actorId: user.id,
@@ -81,6 +84,7 @@ export async function createOrganizationAndInviteAdmin(formData: FormData) {
     email,
     role: role as (typeof ROLES)[number],
     branding: { logoUrl: org.logo_url ?? null, brandColor: org.brand_color ?? null },
+    templateOverride,
   });
 
   if (!result.ok) {
@@ -277,6 +281,7 @@ async function sendAndRecordOrgAdminInvitation(params: {
   email: string;
   role: (typeof ROLES)[number];
   branding: { logoUrl: string | null; brandColor: string | null };
+  templateOverride: { subject: string; blocks: import("@/lib/email/blocks").EmailBlock[] } | null;
 }) {
   const rawToken = generateInvitationToken();
   const tokenHash = hashInvitationToken(rawToken);
@@ -307,6 +312,7 @@ async function sendAndRecordOrgAdminInvitation(params: {
       organizationName: params.organizationName,
       role: params.role,
       branding: params.branding,
+      templateOverride: params.templateOverride,
     });
   } catch (sendError) {
     console.error("sendOrgAdminInvitationEmail failed", { code: (sendError as Error).name });
@@ -519,6 +525,9 @@ export async function inviteAdminToOrganization(formData: FormData) {
     .maybeSingle();
   if (!organization) fail("Organización no encontrada.");
 
+  const admin = createAdminClient();
+  const templateOverride = await getOrgEmailTemplate(admin, organizationId, "invite_org_admin");
+
   const result = await sendAndRecordOrgAdminInvitation({
     supabase,
     actorId: user.id,
@@ -527,6 +536,7 @@ export async function inviteAdminToOrganization(formData: FormData) {
     email,
     role: role as (typeof ROLES)[number],
     branding: { logoUrl: organization.logo_url ?? null, brandColor: organization.brand_color ?? null },
+    templateOverride,
   });
 
   if (!result.ok) fail("No se pudo enviar la invitación.");
@@ -575,6 +585,9 @@ export async function resendOrgAdminInvitation(formData: FormData) {
   } | null;
   const organizationName = pendingOrg?.name ?? "tu organización";
 
+  const admin = createAdminClient();
+  const templateOverride = await getOrgEmailTemplate(admin, organizationId, "invite_org_admin");
+
   const result = await sendAndRecordOrgAdminInvitation({
     supabase,
     actorId: user.id,
@@ -583,6 +596,7 @@ export async function resendOrgAdminInvitation(formData: FormData) {
     email: pending.email,
     role: pending.role as (typeof ROLES)[number],
     branding: { logoUrl: pendingOrg?.logo_url ?? null, brandColor: pendingOrg?.brand_color ?? null },
+    templateOverride,
   });
 
   if (!result.ok) fail("No se pudo reenviar el correo.");

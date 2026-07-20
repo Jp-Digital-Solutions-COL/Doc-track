@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Gavel,
   CreditCard,
+  Mail,
   ShieldAlert,
   ShieldCheck,
   LogOut,
@@ -36,6 +37,7 @@ function buildNav(isAdmin: boolean, superadmin: boolean): NavItem[] {
   }
   items.push({ href: "/app/security", label: "Seguridad", icon: Lock });
   if (isAdmin) {
+    items.push({ href: "/app/settings/emails", label: "Correos", icon: Mail });
     items.push({ href: "/app/plan", label: "Plan", icon: CreditCard });
   }
   if (superadmin) {
